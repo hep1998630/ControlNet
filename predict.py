@@ -29,7 +29,7 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import os
-
+import base64
 
 
 def save_image(numpy_image, save_directory= "./tmp/out/", image_name= "img1.png"):
@@ -48,6 +48,10 @@ def save_image(numpy_image, save_directory= "./tmp/out/", image_name= "img1.png"
     # Return the save path
     return save_path
 
+def decode_base64_image(base64_string):
+    image_bytes = base64.b64decode(base64_string)
+    image = Image.open(BytesIO(image_bytes))
+    return np.array(image)
 
 def get_image_from_url(image_url):
 
@@ -81,7 +85,7 @@ class Predictor(BasePredictor):
         self.model =self.model.cuda()
         self.ddim_sampler = DDIMSampler(self.model)
 
-    def predict(self,input_image_path: Path = Input(description="Image to process") , prompt: str =  Input(description= "prompt"),
+    def predict(self,input_image_string: str = Input(description="Image to process") , prompt: str =  Input(description= "prompt"),
                 a_prompt: str = Input(description= "added prompt", default="best quality, extremely detailed"),
                 n_prompt: str = Input(description= "negative prompt", default= "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"),
                 num_samples: int = Input(description= "num_samples", default= 1), image_resolution: int = Input(description= "Image resolution", default= 512),
@@ -94,7 +98,7 @@ class Predictor(BasePredictor):
         
         
         with torch.no_grad():
-            input_image= get_image_from_url(input_image_path)
+            input_image= decode_base64_image(input_image_string)
             input_image = HWC3(input_image)
             detected_map = self.apply_uniformer(resize_image(input_image, detect_resolution))
             img = resize_image(input_image, image_resolution)
